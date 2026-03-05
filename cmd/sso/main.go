@@ -26,7 +26,9 @@ func main() {
 
 	application := app.New(log, cfg.GRPC.Port, cfg.StoragePath, cfg.TokenTTL)
 
-	go application.GRPCSrv.MustRun()
+	go func() {
+		application.GRPCSrv.MustRun()
+	}()
 	//TODO: инициализация приложения (app)
 
 	//TODO: щапустить gRPC-сервер приложения
@@ -35,9 +37,7 @@ func main() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 
-	sign := <-stop
-
-	log.Info("серверс остановился из-за", slog.String("signal", sign.String()))
+	<-stop
 
 	application.GRPCSrv.Stop()
 
