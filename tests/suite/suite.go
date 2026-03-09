@@ -2,7 +2,10 @@ package suite
 
 import (
 	"context"
+	"log/slog"
 	"net"
+	"os"
+	"sso/internal/app"
 	"sso/internal/config"
 	"strconv"
 	"testing"
@@ -22,63 +25,86 @@ const (
 	grpcHost = "localhost"
 )
 
-// func New(t *testing.T) (context.Context, *Suite) {
-// 	t.Helper()
-// 	t.Parallel()
-
-// 	cfg := config.MustLoadByPath("../config/local.yaml")
-
-// 	ctx, cancelCtx := context.WithTimeout(context.Background(), cfg.GRPC.Timeout)
-
-// 	t.Cleanup(func() {
-// 		t.Helper()
-// 		cancelCtx()
-// 	})
-
-// 	cc, err := grpc.DialContext(context.Background(),
-// 		grpcAddress(cfg),
-// 		grpc.WithTransportCredentials(insecure.NewCredentials())) // Используем insecure-коннект для тестов
-// 	if err != nil {
-// 		t.Fatalf("grpc server connection failed: %v", err)
-// 	}
-
-// 	return ctx, &Suite{
-// 		T:          t,
-// 		Cfg:        cfg,
-// 		AuthClient: ssov1.NewAuthClient(cc),
-// 	}
-
-// }
 func grpcAddress(cfg *config.Config) string {
 	return net.JoinHostPort(grpcHost, strconv.Itoa(cfg.GRPC.Port))
 }
 
 func New(t *testing.T) (context.Context, *Suite) {
 	t.Helper()
-	t.Parallel()
+	//t.Parallel()
 
-	cfg := config.MustLoadByPath("../config/local.yaml")
+	cfg := config.MustLoadByPath("../config/local.yaml") // струкутура с инфорамацией о конфигурации приложения
 
-	ctx, cancelCtx := context.WithTimeout(context.Background(), cfg.GRPC.Timeout)
+	ctx, cancelCtx := context.WithTimeout(context.Background(), cfg.GRPC.Timeout) // контекст для аварийного завершения
 
-	t.Cleanup(func() {
+	t.Cleanup(func() { // дефер для теста
 		t.Helper()
 		cancelCtx()
 	})
 
-	cc, err := grpc.NewClient(grpcAddress(cfg),
-		grpc.WithTransportCredentials(insecure.NewCredentials())) // Используем insecure-коннект для тестов
+	cc, err := grpc.Dial( // токен для соединения с сервером
+		grpcAddress(cfg), // адрес хоста
+		grpc.WithTransportCredentials(insecure.NewCredentials()), // тип соединения без шифрования
+		grpc.WithBlock(), // задержка
+	)
+
 	if err != nil {
-		t.Fatalf("grpc server connection failed: %v", err)
+		t.Fatalf("Соединение не установлено: %v", err)
 	}
 
-	// t.Cleanup(func() {
-	// 	cc.Close()
-	// })
+	t.Cleanup(func() { // еще один дефер для теста
+		cc.Close()
+	})
 
 	return ctx, &Suite{
-		T:          t,
-		Cfg:        cfg,
-		AuthClient: ssov1.NewAuthClient(cc),
+		T:          t,                       // наш тест
+		Cfg:        cfg,                     // конфиг структура
+		AuthClient: ssov1.NewAuthClient(cc), // интерфейс для вызова функций грпс сервера
+	}
+}
+
+func NewForTest(t *testing.T) (context.Context, *Suite) {
+	t.Helper()
+	//t.Parallel()
+
+	cfg := config.MustLoadByPath("../config/local.yaml") // струкутура с инфорамацией о конфигурации приложения
+
+	ctx, cancelCtx := context.WithTimeout(context.Background(), cfg.GRPC.Timeout) // контекст для аварийного завершения
+
+	log := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+
+	application := app.New(log, cfg.GRPC.Port, cfg.StoragePath, cfg.TokenTTL)
+
+	go func() {
+		application.GRPCSrv.MustRun()
+	}()
+
+	t.Cleanup(func() {
+		application.GRPCSrv.Stop()
+	})
+
+	t.Cleanup(func() { // дефер для теста
+		t.Helper()
+		cancelCtx()
+	})
+
+	cc, err := grpc.Dial( // токен для соединения с сервером
+		grpcAddress(cfg), // адрес хоста
+		grpc.WithTransportCredentials(insecure.NewCredentials()), // тип соединения без шифрования
+		grpc.WithBlock(), // задержка
+	)
+
+	if err != nil {
+		t.Fatalf("Соединение не установлено: %v", err)
+	}
+
+	t.Cleanup(func() { // еще один дефер для теста
+		cc.Close()
+	})
+
+	return ctx, &Suite{
+		T:          t,                       // наш тест
+		Cfg:        cfg,                     // конфиг структура
+		AuthClient: ssov1.NewAuthClient(cc), // интерфейс для вызова функций грпс сервера
 	}
 }

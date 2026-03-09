@@ -24,7 +24,7 @@ const (
 // TODO: add token fail validation cases
 
 func TestRegisterLogin_Login_HappyPath(t *testing.T) {
-	ctx, st := suite.New(t)
+	ctx, st := suite.NewForTest(t)
 
 	email := gofakeit.Email()
 	pass := randomFakePassword()
@@ -33,6 +33,7 @@ func TestRegisterLogin_Login_HappyPath(t *testing.T) {
 		Email:    email,
 		Password: pass,
 	})
+
 	require.NoError(t, err)
 	assert.NotEmpty(t, respReg.GetUserId())
 
@@ -41,6 +42,7 @@ func TestRegisterLogin_Login_HappyPath(t *testing.T) {
 		Password: pass,
 		AppId:    appID,
 	})
+
 	require.NoError(t, err)
 
 	token := respLogin.GetToken()
@@ -51,6 +53,7 @@ func TestRegisterLogin_Login_HappyPath(t *testing.T) {
 	tokenParsed, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
 		return []byte(appSecret), nil
 	})
+
 	require.NoError(t, err)
 
 	claims, ok := tokenParsed.Claims.(jwt.MapClaims)
@@ -67,7 +70,7 @@ func TestRegisterLogin_Login_HappyPath(t *testing.T) {
 }
 
 func TestRegisterLogin_DuplicatedRegistration(t *testing.T) {
-	ctx, st := suite.New(t)
+	ctx, st := suite.NewForTest(t)
 
 	email := gofakeit.Email()
 	pass := randomFakePassword()
@@ -89,7 +92,7 @@ func TestRegisterLogin_DuplicatedRegistration(t *testing.T) {
 }
 
 func TestRegister_FailCases(t *testing.T) {
-	ctx, st := suite.New(t)
+	ctx, st := suite.NewForTest(t)
 
 	tests := []struct {
 		name        string
@@ -109,6 +112,7 @@ func TestRegister_FailCases(t *testing.T) {
 			password:    randomFakePassword(),
 			expectedErr: "email is required",
 		},
+
 		{
 			name:        "Register with Both Empty",
 			email:       "",
@@ -131,7 +135,7 @@ func TestRegister_FailCases(t *testing.T) {
 }
 
 func TestLogin_FailCases(t *testing.T) {
-	ctx, st := suite.New(t)
+	ctx, st := suite.NewForTest(t)
 
 	tests := []struct {
 		name        string
