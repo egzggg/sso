@@ -162,5 +162,4 @@ func (a *Auth) IsAdmin(ctx context.Context, userID int64) (bool, error) {
 	log.Info("status of user")
 
 	return isAdmin, nil
-
 }
