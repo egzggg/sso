@@ -18,15 +18,17 @@ const (
 )
 
 func main() {
-	cfg := config.MustLoad()
+	cfg := config.MustLoad() // структра с полями из ямл файла
 
-	log := setupLogger(cfg.Env)
+	log := setupLogger(cfg.Env) // настраиваем уровни логирования
 
 	log.Info("старт приложения", slog.String("config", cfg.Env))
 
-	application := app.New(log, cfg.GRPC.Port, cfg.StoragePath, cfg.TokenTTL)
+	application := app.New(log, cfg.GRPC.Port, cfg.StoragePath, cfg.TokenTTL) // готовый и запущенный grpc сервис
 
-	go application.GRPCSrv.MustRun()
+	go func() {
+		application.GRPCSrv.MustRun()
+	}()
 	//TODO: инициализация приложения (app)
 
 	//TODO: щапустить gRPC-сервер приложения
@@ -35,9 +37,7 @@ func main() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 
-	sign := <-stop
-
-	log.Info("серверс остановился из-за", slog.String("signal", sign.String()))
+	<-stop
 
 	application.GRPCSrv.Stop()
 
