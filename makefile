@@ -19,8 +19,14 @@ help:
 	@echo "  make run   - запустить приложение с локальным конфигом"
 	@echo "  make build - собрать исполняемый файл"
 
-
 .PHONY: migrat
 
-migrat:
-	go run ./cmd/migrator --storage-path=./storage/sso.db --migrations-path=./migrations
+migrate:
+	go run ./cmd/migrator \
+		-migrations-path=./migrations \
+		-host=localhost \
+		-port=5433 \
+		-user=postgres_auth \
+		-password=1234 \
+		-dbname=sso
+		

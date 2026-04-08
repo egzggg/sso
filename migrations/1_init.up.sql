@@ -1,9 +1,8 @@
-CREATE TABLE IF NOT EXISTS users
+CREATE TABLE users
 (
     id        SERIAL PRIMARY KEY,
     email     TEXT NOT NULL UNIQUE,
-    pass_hash BYTEA NOT NULL,
-    is_admin  BOOLEAN DEFAULT FALSE
+    pass_hash BYTEA NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_email ON users (email);

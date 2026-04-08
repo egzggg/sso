@@ -13,7 +13,7 @@ func TestPostgresConnection(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	dbURL := "postgres://postgres_auth:1234@localhost:5432/sso?sslmode=disable"
+	dbURL := "postgres://postgres_auth:1234@localhost:5433/sso?sslmode=disable"
 
 	storage, err := postgres.New(ctx, dbURL)
 	require.NoError(t, err, "failed to connect to Postgres")

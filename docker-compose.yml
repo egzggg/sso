@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres_auth
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: sso
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres_auth"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  migrator:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c "./migrator
+      -migrations-path=./migrations
+      -host=db
+      -port=5432
+      -user=postgres_auth
+      -password=1234
+      -dbname=sso"
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+    ports:
+      - "8081:8080"
+    command: >
+      sh -c "./sso --config=./config/local.yaml"
+
+volumes:
+  postgres_data:
